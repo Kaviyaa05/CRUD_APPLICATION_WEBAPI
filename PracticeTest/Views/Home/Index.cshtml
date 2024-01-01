@@ -1,0 +1,182 @@
+﻿@{
+    ViewBag.Title = "Attendance Tracker";
+}
+<h2>@ViewBag.Title</h2>
+<script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+<div>
+    <button id="addStudentBtn">Add Student</button>
+    <table id="studentTable" class="table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Date</th>
+                <th>Student Name</th>
+                <th>Roll Number</th>
+                <th>Course</th>
+                <th>Batch</th>
+                <th>Status</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody id="myTable">
+
+        </tbody>
+    </table>
+</div>
+<div class="modal" id="studentModal" style="display:none">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <h3 id="modalTitle">Add/Edit Student</h3>
+        <form id="studentForm">/
+            <input type="hidden" id="studentId" />
+            <label for="date">Date:</label>
+            <input type="date" id="date" />
+            <label for="studentName">Student Name:</label>
+            <input type="text" id="studentName" />
+            <label for="rollNumber">Roll Number:</label>
+            <input type="text" id="rollNumber" />
+            <label for="course">Course:</label>
+            <input type="text" id="course" />
+            <label for="batch">Batch:</label>
+            <input type="text" id="batch" />
+            <label for="status">Status:</label>
+            <input type="text" id="status" />
+        </form>
+        <button id="saveStudent">Save</button>
+    </div>
+</div>
+<script>
+    $(document).ready(function () {
+        $('#addStudentBtn').on('click', function () {
+            $('#studentForm')[0].reset();
+            $('#modalTitle').text('Add');
+            $('#studentModal').show();
+        });
+
+        loadStudentData();
+
+
+        function loadStudentData() {
+            $.ajax({
+                url: '/api/StudentApi',
+                type: 'GET',
+                success: function (data) {
+                    displayStudentData(data);
+                },
+                error: function (error) {
+                    console.error("Error:", error);
+                }
+            });
+        }
+
+
+        function displayStudentData(data) {
+            var tableBody = $('#studentTable tbody');
+            tableBody.empty();
+
+            $.each(data, function (index, student) {
+                var row = $('<tr>');
+                row.append('<td>' + student.Id + '</td>');
+                row.append('<td>' + student.Date + '</td>');
+                row.append('<td>' + student.Student_Name + '</td>');
+                row.append('<td>' + student.Roll_Number + '</td>');
+                row.append('<td>' + student.Course + '</td>');
+                row.append('<td>' + student.Batch + '</td>');
+                row.append('<td>' + student.Status + '</td>');
+                row.append('<td><button class="edit" data-id="' + student.Id +
+                    '">Edit</button> | <button class="delete" data-id="' + student.Id +
+                    '">Delete</button></td>');
+                tableBody.append(row);
+            });
+
+            $('.edit').on('click', function () {
+                var studentId = $(this).data('id');
+                editStudent(studentId);
+            });
+
+            $('.delete').on('click', function () {
+                var studentId = $(this).data('id');
+                deleteStudent(studentId);
+            });
+        }
+
+
+        function editStudent(studentId) {
+            $.ajax({
+                url: '/api/StudentApi/' + studentId,
+                type: 'GET',
+                dataType: 'json',
+                success: function (student) {
+                    populateForm(student);
+                },
+                error: function (error) {
+                    console.error("Error:", error);
+                }
+            });
+        }
+
+
+        function deleteStudent(studentId) {
+            $.ajax({
+                url: '/api/StudentApi/' + studentId,
+                type: 'DELETE',
+                success: function () {
+                    loadStudentData();
+                },
+                error: function (error) {
+                    console.error("Error:", error);
+                }
+            });
+        }
+
+
+        function populateForm(student) {
+            $('#studentId').val(student.Id);
+            $('#date').val(student.Date);
+            $('#studentName').val(student.Student_Name);
+            $('#rollNumber').val(student.Roll_Number);
+            $('#course').val(student.Course);
+            $('#batch').val(student.Batch);
+            $('#status').val(student.Status);
+            $('#modalTitle').text('Edit');
+            $('#studentModal').show();
+        }
+
+        $('#saveStudent').on('click', function () {
+            var student = {
+                Id: $('#studentId').val(),
+                Date: $('#date').val(),
+                Student_Name: $('#studentName').val(),
+                Roll_Number: $('#rollNumber').val(),
+                Course: $('#course').val(),
+                Batch: $('#batch').val(),
+                Status: $('#status').val()
+            };
+
+            saveStudent(student);
+        });
+
+        function saveStudent(student) {
+            var isAddOperation = !student.Id;
+
+            $.ajax({
+                url: isAddOperation ? '/api/StudentApi' : '/api/StudentApi/' +
+                    student.Id,
+                type: isAddOperation ? 'POST' : 'PUT',
+                contentType: 'application/json',
+                data: JSON.stringify(student),
+                success: function () {
+                    $('#studentModal').hide();
+                    loadStudentData();
+                },
+                error: function (error) {
+                    console.error("Error:", error);
+                }
+            });
+        }
+
+        $('.close').on('click', function () {
+            $('#studentModal').hide();
+        });
+    });
+</script>
